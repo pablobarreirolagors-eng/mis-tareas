@@ -1,0 +1,1440 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mis Tareas</title>
+<style>
+  :root { color-scheme: light; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #ded0b6;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(0,0,0,0.03) 0%, transparent 40%),
+      radial-gradient(circle at 80% 60%, rgba(0,0,0,0.03) 0%, transparent 40%),
+      radial-gradient(circle at 50% 90%, rgba(0,0,0,0.02) 0%, transparent 50%);
+    color: #3a3020;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: #6b5638;
+    color: #f7f0dd;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .topbar h1 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .topbar .sub {
+    font-size: 12px;
+    opacity: 0.85;
+  }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-new {
+    background: #f7f0dd;
+    color: #6b5638;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-new:hover { background: #fff; }
+  .btn-new.secondary { background: #d8c9a3; color: #4a3c22; }
+  .btn-new.secondary:hover { background: #e6d9b6; }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    padding: 8px 20px;
+    font-size: 12px;
+    color: #5a4a30;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-cats { display: flex; gap: 16px; flex-wrap: wrap; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,0.15); }
+  .legend-tail { display: flex; align-items: center; margin-left: auto; flex-wrap: wrap; gap: 4px; }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 4px 20px 10px 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .toolbar input[type=text], .toolbar input[type=date], .toolbar select {
+    padding: 6px 9px;
+    border-radius: 6px;
+    border: 1px solid #c9bb98;
+    font-size: 12.5px;
+    background: #fffdf6;
+    font-family: inherit;
+  }
+  #searchInput { min-width: 200px; flex: 1; max-width: 280px; }
+  .btn-clear-filters {
+    background: none;
+    border: 1px solid #a58f63;
+    color: #5a4a30;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .phase-banner {
+    margin: 8px 20px 0 20px;
+    background: #dff0d8;
+    border: 1px solid #9fcf8e;
+    color: #2f4a28;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12.5px;
+  }
+
+  .board {
+    display: flex;
+    gap: 18px;
+    padding: 18px 20px 60px 20px;
+    align-items: flex-start;
+    overflow-x: auto;
+  }
+
+  .column {
+    flex: 1;
+    min-width: 280px;
+    max-width: 400px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 10px;
+    padding: 12px;
+    min-height: 400px;
+    transition: background 0.15s, outline 0.15s;
+  }
+  .column.drag-over {
+    background: rgba(255,255,255,0.5);
+    outline: 2px dashed #6b5638;
+    outline-offset: -4px;
+  }
+
+  .column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 4px 6px;
+  }
+  .column-header h2 {
+    font-size: 14px;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #4a3c22;
+  }
+  .count-badge {
+    background: rgba(0,0,0,0.12);
+    color: #4a3c22;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .empty-hint {
+    font-size: 12px;
+    color: #7a6c50;
+    text-align: center;
+    padding: 30px 10px;
+    font-style: italic;
+  }
+
+  .card {
+    position: relative;
+    padding: 14px 12px 12px 12px;
+    margin-bottom: 14px;
+    border-radius: 3px;
+    box-shadow: 2px 4px 8px rgba(0,0,0,0.18);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: transform 0.1s, opacity 0.1s;
+  }
+  .card:hover { transform: translateY(-2px) scale(1.01); }
+  .card.dragging-source { opacity: 0.35; cursor: grabbing; }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 34px;
+    height: 12px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+
+  .card-ghost {
+    position: fixed;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0.95;
+    transform: rotate(-3deg);
+    box-shadow: 4px 10px 22px rgba(0,0,0,0.35);
+    margin: 0;
+  }
+
+  .cat-badge {
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.85;
+    margin: 0 0 5px 0;
+    color: inherit;
+  }
+
+  .card-title {
+    font-weight: 700;
+    font-size: 14.5px;
+    margin: 0 0 6px 0;
+    word-break: break-word;
+    padding-right: 46px;
+    color: inherit;
+  }
+  .card-desc {
+    font-size: 12.5px;
+    color: inherit;
+    opacity: 0.9;
+    margin: 0 0 8px 0;
+    max-height: 48px;
+    overflow: hidden;
+    word-break: break-word;
+  }
+
+  .date-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 10px;
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .badge-green  { background: #3d9a4f; }
+  .badge-yellow { background: #c99a1a; }
+  .badge-red    { background: #c0392b; }
+  .badge-gray   { background: #8a8a8a; }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .tag-chip {
+    font-size: 10.5px;
+    background: rgba(255,255,255,0.35);
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 2px 7px;
+    border-radius: 8px;
+    color: inherit;
+  }
+
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+  }
+  .move-btns { display: flex; gap: 4px; }
+  .move-btn {
+    background: rgba(255,255,255,0.3);
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    touch-action: manipulation;
+    color: inherit;
+  }
+  .move-btn:hover { background: rgba(255,255,255,0.5); }
+  .move-btn:disabled { opacity: 0.25; cursor: default; }
+
+  .attach-indicator { font-size: 11px; color: inherit; opacity: 0.85; }
+
+  .drag-hint { font-size: 11px; color: #5a4a30; opacity: 0.75; }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: #fffdf6;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 22px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  }
+  .modal h2 { margin-top: 0; font-size: 18px; }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #5a4a30;
+    margin-bottom: 4px;
+  }
+  .field input[type=text], .field input[type=date], .field textarea, .field select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d8cdb0;
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-family: inherit;
+    background: #fff;
+  }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+
+  .new-cat-row { display: flex; gap: 6px; margin-top: 8px; }
+  .new-cat-row input { flex: 1; }
+
+  .tag-input-row { display: flex; gap: 6px; }
+  .tag-input-row input { flex: 1; }
+  .tag-add-btn {
+    background: #6b5638;
+    color: #fff;
+    border: none;
+    padding: 0 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag-pill {
+    background: #e9e0c8;
+    border-radius: 10px;
+    padding: 3px 6px 3px 10px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tag-pill button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: #a03030;
+    padding: 0;
+  }
+
+  .section-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #5a4a30;
+    margin: 18px 0 8px 0;
+    border-top: 1px solid #e9e0c8;
+    padding-top: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .history-item, .note-item {
+    font-size: 12.5px;
+    padding: 6px 0;
+    border-bottom: 1px dashed #e9e0c8;
+    color: #4a3c22;
+  }
+  .history-item .ts, .note-item .ts {
+    font-size: 11px;
+    color: #8a7a58;
+    display: block;
+  }
+
+  .event-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    padding: 6px 0;
+    border-bottom: 1px dashed #e9e0c8;
+    color: #4a3c22;
+    gap: 8px;
+  }
+  .event-row .ts { font-size: 11px; color: #8a7a58; }
+  .event-mini-btn {
+    background: #e9e0c8;
+    border: none;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .event-mini-btn.done { background: #cfe9cf; }
+  .event-rm-btn { background: none; border: none; color: #a03030; cursor: pointer; font-size: 12px; }
+
+  .note-add-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .note-add-row textarea { flex: 1; min-height: 40px; }
+  .note-add-row input[type=date] {
+    padding: 8px 10px; border: 1px solid #d8cdb0; border-radius: 6px; font-size: 13px; font-family: inherit;
+  }
+  .note-add-row input[type=text] {
+    flex: 1; padding: 8px 10px; border: 1px solid #d8cdb0; border-radius: 6px; font-size: 13px; font-family: inherit;
+  }
+
+  .attach-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .attach-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f3ecd8;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .attach-row a { color: #4a5a8a; text-decoration: none; }
+  .attach-row button { background: none; border: none; color: #a03030; cursor: pointer; font-size: 12px; }
+
+  .modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 9px 16px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-save { background: #3d7a3f; color: #fff; }
+  .btn-close { background: #ccc4ab; color: #3a3020; }
+  .btn-delete { background: #a03030; color: #fff; }
+  .btn-archive { background: #c9a227; color: #fff; }
+
+  .file-btn {
+    display: inline-block;
+    background: #e9e0c8;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+
+  .warn-small { font-size: 11px; color: #a03030; margin-top: 4px; }
+  .info-line { font-size: 12px; color: #5a4a30; }
+
+  .archive-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f3ecd8;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    gap: 10px;
+  }
+  .archive-row .meta { font-size: 11px; color: #8a7a58; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>📌 Mis Tareas</h1>
+    <div class="sub" id="syncStatus">⏳ Cargando…</div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn-new secondary" id="btnRefresh" title="Actualizar desde la nube">🔄</button>
+    <button class="btn-new secondary" id="btnArchiveView">🗄 Archivo</button>
+    <button class="btn-new" id="btnNewTask">+ Nueva tarea</button>
+  </div>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<div class="toolbar">
+  <input type="text" id="searchInput" placeholder="🔎 Buscar por nombre..." />
+  <select id="filterCategoria"></select>
+  <select id="filterPrioridad">
+    <option value="">Todas las prioridades</option>
+    <option value="normal">Normal</option>
+    <option value="media">Media</option>
+    <option value="alta">Alta</option>
+  </select>
+  <input type="date" id="filterFecha" title="Filtrar por fecha límite" />
+  <button class="btn-clear-filters" id="btnClearFilters">Limpiar filtros</button>
+</div>
+
+<div class="phase-banner">
+  ☁️ Fase 2: sincronizado con Supabase. Abre esta misma página desde el móvil o cualquier PC y verás las mismas tareas. Si se pierde la conexión, los cambios se guardan solo en este dispositivo hasta que vuelva.
+  <span class="drag-hint">· Arrastra las tarjetas (con ratón o dedo) para moverlas de columna Y reordenarlas dentro de la misma columna, o usa las flechas ‹ ›.</span>
+</div>
+
+<div class="board" id="board"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+(function(){
+  // ---- Supabase sync config ----
+  // Only the PUBLISHABLE key lives here (safe for client-side code).
+  // Never put the secret/service key in this file.
+  var SUPABASE_URL = 'https://qgeljxgynifjnxrgsjxw.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_GrerzZQtUHzVQuvaVAStdw_0ywYvyiQ';
+  var REST_TABLE = SUPABASE_URL + '/rest/v1/board';
+  var LOCAL_CACHE_KEY = 'rs_taskboard_cache_v1';
+
+  var COLUMNS = ['todo','doing','done'];
+  var COLUMN_LABELS = { todo: 'To Do', doing: 'In Progress', done: 'Done' };
+
+  var PRIORITY_ORDER = ['normal','media','alta'];
+  var PRIORITY_LABELS = { normal: 'Normal', media: 'Media', alta: 'Alta' };
+  // Lightness/saturation per priority: higher urgency = darker + more saturated
+  var PRIORITY_SHADE = {
+    normal: { l: 83, s: 55 },
+    media:  { l: 65, s: 62 },
+    alta:   { l: 42, s: 68 }
+  };
+  var HUE_PALETTE = [130, 330, 210, 30, 270, 0, 190, 50, 100, 300];
+
+  var DEFAULT_CATEGORIES = [
+    { id: 'equipo',  name: 'Hablar con equipo', hue: 130 },
+    { id: 'jefe',    name: 'Hablar con jefe',   hue: 330 },
+    { id: 'cliente', name: 'Pendiente cliente', hue: 210 }
+  ];
+
+  var filters = { q: '', categoria: '', prioridad: '', fecha: '' };
+
+  var state = { tasks: [], categories: DEFAULT_CATEGORIES.map(function(c){ return Object.assign({}, c); }) };
+
+  function normalizeState(s){
+    if (!s) s = {};
+    if (!s.tasks) s.tasks = [];
+    if (!s.categories || !s.categories.length) {
+      s.categories = DEFAULT_CATEGORIES.map(function(c){ return Object.assign({}, c); });
+    }
+    s.tasks.forEach(function(t){
+      if (!t.categoria) t.categoria = s.categories[0].id;
+      if (!t.prioridad) t.prioridad = 'normal';
+      if (typeof t.archivado !== 'boolean') t.archivado = false;
+      if (!t.eventos) t.eventos = [];
+    });
+    return s;
+  }
+
+  function setStatus(kind){
+    var el = document.getElementById('syncStatus');
+    if (!el) return;
+    var map = {
+      synced:  '🟢 Sincronizado con la nube',
+      saving:  '🟡 Guardando…',
+      offline: '🔴 Sin conexión — guardado solo en este dispositivo',
+      loading: '⏳ Cargando…'
+    };
+    el.textContent = map[kind] || map.offline;
+  }
+
+  function loadLocalCache(){
+    try {
+      var raw = localStorage.getItem(LOCAL_CACHE_KEY);
+      return normalizeState(raw ? JSON.parse(raw) : {});
+    } catch(e) { return normalizeState({}); }
+  }
+
+  function cacheLocally(){
+    try { localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(state)); } catch(e) {}
+  }
+
+  function loadRemote(){
+    return fetch(REST_TABLE + '?select=data&id=eq.1', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    }).then(function(res){
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function(rows){
+      setStatus('synced');
+      if (rows && rows.length) return normalizeState(rows[0].data);
+      return normalizeState({});
+    }).catch(function(e){
+      console.warn('No se pudo cargar de Supabase, usando copia local de este dispositivo', e);
+      setStatus('offline');
+      return loadLocalCache();
+    });
+  }
+
+  function saveRemote(){
+    cacheLocally();
+    setStatus('saving');
+    return fetch(REST_TABLE + '?id=eq.1', {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ data: state })
+    }).then(function(res){
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      setStatus('synced');
+    }).catch(function(e){
+      console.warn('No se pudo sincronizar con Supabase, cambios guardados solo en este dispositivo', e);
+      setStatus('offline');
+    });
+  }
+
+  function save(){
+    saveRemote();
+  }
+
+  function refreshFromRemote(){
+    setStatus('loading');
+    loadRemote().then(function(s){
+      state = s;
+      render();
+    });
+  }
+
+  function uid(){ return 't' + Date.now() + Math.random().toString(36).slice(2,8); }
+  function nowIso(){ return new Date().toISOString(); }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function fmtDateTime(iso){
+    var d = new Date(iso);
+    return d.toLocaleDateString('es-ES', {day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function getCategory(id){
+    return state.categories.find(function(c){ return c.id === id; }) || state.categories[0];
+  }
+
+  function nextHue(){
+    var used = state.categories.map(function(c){ return c.hue; });
+    for (var i=0;i<HUE_PALETTE.length;i++){
+      if (used.indexOf(HUE_PALETTE[i]) === -1) return HUE_PALETTE[i];
+    }
+    return Math.floor(Math.random()*360);
+  }
+
+  function slugify(name){
+    var base = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+    var id = base || uid();
+    var candidate = id, n = 1;
+    while (state.categories.some(function(c){ return c.id === candidate; })) {
+      candidate = id + '-' + (++n);
+    }
+    return candidate;
+  }
+
+  function cardColor(task){
+    var cat = getCategory(task.categoria);
+    var shade = PRIORITY_SHADE[task.prioridad] || PRIORITY_SHADE.normal;
+    var bg = 'hsl(' + cat.hue + ', ' + shade.s + '%, ' + shade.l + '%)';
+    var text = shade.l < 55 ? '#fdf8ea' : '#3a3020';
+    return { bg: bg, text: text };
+  }
+
+  function daysUntil(dateStr){
+    if (!dateStr) return null;
+    var today = new Date(); today.setHours(0,0,0,0);
+    var target = new Date(dateStr + 'T00:00:00');
+    var diff = Math.round((target - today) / 86400000);
+    return diff;
+  }
+
+  function badgeFor(dateStr){
+    if (!dateStr) return null;
+    var d = daysUntil(dateStr);
+    var cls, text;
+    if (d < 0) { cls = 'badge-red'; text = 'Vencida'; }
+    else if (d === 0) { cls = 'badge-red'; text = 'Hoy'; }
+    else if (d <= 2) { cls = 'badge-yellow'; text = d + 'd'; }
+    else { cls = 'badge-green'; text = d + 'd'; }
+    return { cls: cls, text: text };
+  }
+
+  function eventDaysLabel(fecha){
+    var d = daysUntil(fecha);
+    if (d === null) return '';
+    if (d < 0) return 'hace ' + Math.abs(d) + 'd';
+    if (d === 0) return 'hoy';
+    return 'en ' + d + 'd';
+  }
+
+  function eventSummary(task){
+    var eventos = task.eventos || [];
+    if (!eventos.length) return 'Sin eventos de seguimiento todavía.';
+    var t = todayStr();
+    var upcoming = eventos.filter(function(e){ return !e.hecho && e.fecha >= t; }).sort(function(a,b){ return a.fecha < b.fecha ? -1 : 1; });
+    if (upcoming.length) {
+      return 'Próximo evento: ' + upcoming[0].fecha + ' (' + eventDaysLabel(upcoming[0].fecha) + ')';
+    }
+    var past = eventos.slice().sort(function(a,b){ return a.fecha > b.fecha ? -1 : 1; });
+    return 'Último evento: ' + past[0].fecha + ' (' + eventDaysLabel(past[0].fecha) + ')';
+  }
+
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  // ---- Drag & drop state (mouse + touch via Pointer Events) ----
+  var dragState = null;
+  var suppressNextClick = false;
+
+  function renderLegend(){
+    var el = document.getElementById('legend');
+    var catsHtml = state.categories.map(function(cat){
+      var swatches = PRIORITY_ORDER.map(function(p){
+        var shade = PRIORITY_SHADE[p];
+        var bg = 'hsl(' + cat.hue + ',' + shade.s + '%,' + shade.l + '%)';
+        return '<span class="swatch" style="background:' + bg + '" title="' + escapeHtml(cat.name) + ' · ' + PRIORITY_LABELS[p] + '"></span>';
+      }).join('');
+      return '<span class="legend-item">' + escapeHtml(cat.name) + ' ' + swatches + '</span>';
+    }).join('');
+
+    el.innerHTML =
+      '<div class="legend-cats">' + catsHtml + '</div>' +
+      '<div class="legend-tail">' +
+        '<span class="swatch" style="background:#3d9a4f"></span> ≥3 días' +
+        '<span class="swatch" style="background:#c99a1a;margin-left:6px"></span> 1-2 días' +
+        '<span class="swatch" style="background:#c0392b;margin-left:6px"></span> vencida' +
+      '</div>';
+  }
+
+  function syncFilterOptions(){
+    var sel = document.getElementById('filterCategoria');
+    var current = sel.value || filters.categoria;
+    sel.innerHTML = '<option value="">Todas las categorías</option>' +
+      state.categories.map(function(c){ return '<option value="'+c.id+'">'+escapeHtml(c.name)+'</option>'; }).join('');
+    sel.value = current;
+  }
+
+  function taskMatchesFilters(t){
+    if (t.archivado) return false;
+    if (filters.q) {
+      var q = filters.q.toLowerCase();
+      if ((t.titulo||'').toLowerCase().indexOf(q) === -1) return false;
+    }
+    if (filters.categoria && t.categoria !== filters.categoria) return false;
+    if (filters.prioridad && t.prioridad !== filters.prioridad) return false;
+    if (filters.fecha && t.fecha_limite !== filters.fecha) return false;
+    return true;
+  }
+
+  function render(){
+    renderLegend();
+    syncFilterOptions();
+    var board = document.getElementById('board');
+    board.innerHTML = '';
+    COLUMNS.forEach(function(colKey){
+      var colTasks = state.tasks.filter(function(t){ return t.estado === colKey && taskMatchesFilters(t); });
+      var col = document.createElement('div');
+      col.className = 'column';
+      col.setAttribute('data-colkey', colKey);
+      col.innerHTML = '<div class="column-header"><h2>' + COLUMN_LABELS[colKey] + '</h2><span class="count-badge">' + colTasks.length + '</span></div>';
+
+      if (colTasks.length === 0) {
+        var hint = document.createElement('div');
+        hint.className = 'empty-hint';
+        hint.textContent = 'Sin tareas aquí';
+        col.appendChild(hint);
+      }
+
+      colTasks.forEach(function(task){
+        col.appendChild(renderCard(task, colKey));
+      });
+
+      board.appendChild(col);
+    });
+  }
+
+  function renderCard(task, colKey){
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.id = task.id;
+    var color = cardColor(task);
+    card.style.background = color.bg;
+    card.style.color = color.text;
+
+    var badge = badgeFor(task.fecha_limite);
+    var badgeHtml = '';
+    if (badge && colKey !== 'done') {
+      badgeHtml = '<span class="date-badge ' + badge.cls + '">' + badge.text + '</span>';
+    }
+
+    var cat = getCategory(task.categoria);
+    var catBadgeHtml = '<div class="cat-badge">' + escapeHtml(cat.name) + ' · ' + PRIORITY_LABELS[task.prioridad] + '</div>';
+
+    var tagsHtml = (task.tags||[]).map(function(t){
+      return '<span class="tag-chip">' + escapeHtml(t) + '</span>';
+    }).join('');
+
+    var attachHtml = (task.archivos && task.archivos.length)
+      ? '<span class="attach-indicator">📎 ' + task.archivos.length + '</span>' : '<span></span>';
+
+    var idx = COLUMNS.indexOf(colKey);
+    var canLeft = idx > 0;
+    var canRight = idx < COLUMNS.length - 1;
+
+    card.innerHTML =
+      badgeHtml +
+      catBadgeHtml +
+      '<div class="card-title">' + escapeHtml(task.titulo) + '</div>' +
+      (task.descripcion ? '<div class="card-desc">' + escapeHtml(task.descripcion) + '</div>' : '') +
+      '<div class="tag-row">' + tagsHtml + '</div>' +
+      '<div class="card-footer">' +
+        '<div class="move-btns">' +
+          '<button class="move-btn" data-move="left" ' + (canLeft ? '' : 'disabled') + '>‹</button>' +
+          '<button class="move-btn" data-move="right" ' + (canRight ? '' : 'disabled') + '>›</button>' +
+        '</div>' +
+        attachHtml +
+      '</div>';
+
+    // click to open detail (suppressed right after a real drag)
+    card.addEventListener('click', function(e){
+      if (e.target.closest('.move-btn')) return;
+      if (suppressNextClick) { suppressNextClick = false; return; }
+      openDetail(task.id);
+    });
+
+    // arrow buttons (kept as precise fallback alongside drag)
+    var btns = card.querySelectorAll('.move-btn');
+    btns.forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        var dir = b.dataset.move;
+        moveTask(task.id, dir);
+      });
+    });
+
+    // drag via Pointer Events (works for mouse AND touch/finger in one code path)
+    card.addEventListener('pointerdown', function(e){
+      if (e.target.closest('.move-btn')) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      var rect = card.getBoundingClientRect();
+      dragState = {
+        id: task.id,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top,
+        width: rect.width,
+        originEl: card,
+        dragging: false,
+        ghost: null
+      };
+      try { card.setPointerCapture(e.pointerId); } catch(err) {}
+    });
+
+    card.addEventListener('pointermove', function(e){
+      if (!dragState || dragState.id !== task.id) return;
+      var dx = e.clientX - dragState.startX;
+      var dy = e.clientY - dragState.startY;
+      if (!dragState.dragging) {
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+          startDragging(e);
+        } else {
+          return;
+        }
+      }
+      e.preventDefault();
+      moveGhost(e.clientX, e.clientY);
+      highlightColumnAt(e.clientX, e.clientY);
+    });
+
+    card.addEventListener('pointerup', function(e){
+      if (!dragState || dragState.id !== task.id) return;
+      if (dragState.dragging) {
+        finishDrag(e.clientX, e.clientY);
+      } else {
+        dragState = null;
+      }
+    });
+
+    card.addEventListener('pointercancel', function(e){
+      if (!dragState || dragState.id !== task.id) return;
+      if (dragState.dragging) {
+        cleanupDrag();
+        render();
+      } else {
+        dragState = null;
+      }
+    });
+
+    return card;
+  }
+
+  function startDragging(e){
+    dragState.dragging = true;
+    suppressNextClick = true;
+    var origin = dragState.originEl;
+    origin.classList.add('dragging-source');
+    var ghost = origin.cloneNode(true);
+    ghost.classList.add('card-ghost');
+    ghost.classList.remove('dragging-source');
+    ghost.style.width = dragState.width + 'px';
+    ghost.style.background = origin.style.background;
+    ghost.style.color = origin.style.color;
+    document.body.appendChild(ghost);
+    dragState.ghost = ghost;
+    moveGhost(e.clientX, e.clientY);
+  }
+
+  function moveGhost(x, y){
+    if (!dragState || !dragState.ghost) return;
+    dragState.ghost.style.left = (x - dragState.offsetX) + 'px';
+    dragState.ghost.style.top = (y - dragState.offsetY) + 'px';
+  }
+
+  function highlightColumnAt(x, y){
+    document.querySelectorAll('.column').forEach(function(c){ c.classList.remove('drag-over'); });
+    var el = document.elementFromPoint(x, y);
+    var col = el && el.closest('.column');
+    if (col) col.classList.add('drag-over');
+  }
+
+  // find the visible sibling card the pointer is hovering over, to know where to insert
+  function computeDropRef(colEl, y, excludeEl){
+    var cards = Array.prototype.filter.call(colEl.querySelectorAll('.card'), function(c){ return c !== excludeEl; });
+    for (var i=0;i<cards.length;i++){
+      var rect = cards[i].getBoundingClientRect();
+      var mid = rect.top + rect.height/2;
+      if (y < mid) return cards[i];
+    }
+    return null;
+  }
+
+  // moves a task to a column, optionally inserting it right before beforeTask (for manual ordering)
+  function moveTaskWithOrder(task, newColKey, beforeTaskId){
+    var oldEstado = task.estado;
+    var idx = state.tasks.indexOf(task);
+    if (idx !== -1) state.tasks.splice(idx, 1);
+
+    var insertAt;
+    if (beforeTaskId) {
+      insertAt = state.tasks.findIndex(function(t){ return t.id === beforeTaskId; });
+      if (insertAt === -1) insertAt = state.tasks.length;
+    } else {
+      var lastIdx = -1;
+      state.tasks.forEach(function(t, i){ if (t.estado === newColKey) lastIdx = i; });
+      insertAt = lastIdx + 1;
+    }
+    state.tasks.splice(insertAt, 0, task);
+
+    if (oldEstado !== newColKey) {
+      task.estado = newColKey;
+      task.historial = task.historial || [];
+      task.historial.unshift({ ts: nowIso(), texto: COLUMN_LABELS[oldEstado] + ' → ' + COLUMN_LABELS[newColKey] });
+    }
+  }
+
+  function finishDrag(x, y){
+    var wasDragging = dragState.dragging;
+    if (wasDragging) {
+      var el = document.elementFromPoint(x, y);
+      var col = el && el.closest('.column');
+      if (col) {
+        var newState = col.getAttribute('data-colkey');
+        var task = state.tasks.find(function(t){ return t.id === dragState.id; });
+        if (task) {
+          var refCard = computeDropRef(col, y, dragState.originEl);
+          var beforeId = refCard ? refCard.dataset.id : null;
+          moveTaskWithOrder(task, newState, beforeId);
+          save();
+        }
+      }
+    }
+    cleanupDrag();
+    render();
+  }
+
+  function cleanupDrag(){
+    if (dragState) {
+      if (dragState.ghost) dragState.ghost.remove();
+      if (dragState.originEl) dragState.originEl.classList.remove('dragging-source');
+    }
+    document.querySelectorAll('.column').forEach(function(c){ c.classList.remove('drag-over'); });
+    dragState = null;
+    setTimeout(function(){ suppressNextClick = false; }, 80);
+  }
+
+  function moveTask(id, dir){
+    var task = state.tasks.find(function(t){ return t.id === id; });
+    if (!task) return;
+    var idx = COLUMNS.indexOf(task.estado);
+    var newIdx = dir === 'left' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= COLUMNS.length) return;
+    var newState = COLUMNS[newIdx];
+    moveTaskWithOrder(task, newState, null);
+    save();
+    render();
+  }
+
+  // ---- Modal / detail ----
+  var currentEditId = null;
+  var draftTags = [];
+  var draftAttachments = [];
+  var draftCategoria = null;
+  var draftPrioridad = 'normal';
+
+  function openNew(){
+    currentEditId = null;
+    draftTags = [];
+    draftAttachments = [];
+    draftCategoria = state.categories[0].id;
+    draftPrioridad = 'normal';
+    renderModal({
+      titulo: '', descripcion: '', tags: [], fecha_limite: '', estado: 'todo',
+      categoria: draftCategoria, prioridad: draftPrioridad,
+      historial: [], notas: [], archivos: [], eventos: []
+    }, true);
+    document.getElementById('overlay').classList.add('open');
+  }
+
+  function openDetail(id){
+    var task = state.tasks.find(function(t){ return t.id === id; });
+    if (!task) return;
+    currentEditId = id;
+    draftTags = (task.tags||[]).slice();
+    draftAttachments = (task.archivos||[]).slice();
+    draftCategoria = task.categoria;
+    draftPrioridad = task.prioridad;
+    renderModal(task, false);
+    document.getElementById('overlay').classList.add('open');
+  }
+
+  function closeModal(){
+    document.getElementById('overlay').classList.remove('open');
+    currentEditId = null;
+  }
+
+  function renderModal(task, isNew){
+    var modal = document.getElementById('modal');
+
+    var tagPills = draftTags.map(function(t, i){
+      return '<span class="tag-pill">' + escapeHtml(t) + ' <button data-rmtag="' + i + '">✕</button></span>';
+    }).join('');
+
+    var historyHtml = (task.historial||[]).length
+      ? task.historial.map(function(h){
+          return '<div class="history-item"><span class="ts">' + fmtDateTime(h.ts) + '</span>' + escapeHtml(h.texto) + '</div>';
+        }).join('')
+      : '<div class="history-item" style="color:#8a7a58;font-style:italic;border:none;">Sin movimientos todavía</div>';
+
+    var notesHtml = (task.notas||[]).length
+      ? task.notas.slice().reverse().map(function(n){
+          return '<div class="note-item"><span class="ts">' + fmtDateTime(n.ts) + '</span>' + escapeHtml(n.texto) + '</div>';
+        }).join('')
+      : '<div class="note-item" style="color:#8a7a58;font-style:italic;border:none;">Sin notas todavía</div>';
+
+    var eventsHtml = (task.eventos||[]).length
+      ? task.eventos.slice().sort(function(a,b){ return a.fecha < b.fecha ? -1 : 1; }).map(function(ev){
+          var label = escapeHtml(ev.fecha) + (ev.nota ? ' — ' + escapeHtml(ev.nota) : '');
+          return '<div class="event-row">' +
+            '<span>' + (ev.hecho ? '<s>' + label + '</s>' : label) + ' <span class="ts">(' + eventDaysLabel(ev.fecha) + ')</span></span>' +
+            '<span>' +
+              (!ev.hecho ? '<button class="event-mini-btn" data-doneevt="' + ev.id + '">✓ Hecho</button>' : '<span class="event-mini-btn done">✔ hecho</span>') +
+              ' <button class="event-rm-btn" data-rmevt="' + ev.id + '">✕</button>' +
+            '</span>' +
+          '</div>';
+        }).join('')
+      : '<div class="event-row" style="color:#8a7a58;font-style:italic;border:none;">Sin eventos todavía</div>';
+
+    var attachHtml = draftAttachments.length
+      ? draftAttachments.map(function(a, i){
+          return '<div class="attach-row"><a href="' + a.dataUrl + '" download="' + escapeHtml(a.name) + '">📎 ' + escapeHtml(a.name) + '</a><button data-rmfile="' + i + '">Quitar</button></div>';
+        }).join('')
+      : '';
+
+    var catOptions = state.categories.map(function(c){
+      return '<option value="' + c.id + '" ' + (draftCategoria===c.id?'selected':'') + '>' + escapeHtml(c.name) + '</option>';
+    }).join('') + '<option value="__new__">+ Añadir nueva categoría…</option>';
+
+    var prioOptions = PRIORITY_ORDER.map(function(p){
+      return '<option value="' + p + '" ' + (draftPrioridad===p?'selected':'') + '>' + PRIORITY_LABELS[p] + '</option>';
+    }).join('');
+
+    modal.innerHTML =
+      '<h2>' + (isNew ? 'Nueva tarea' : 'Editar tarea') + '</h2>' +
+      (!isNew && task.fecha_creacion ? '<div class="info-line" style="margin:-10px 0 14px 0;">Creada el ' + fmtDateTime(task.fecha_creacion) + '</div>' : '') +
+
+      '<div class="field"><label>Título</label><input type="text" id="f_titulo" value="' + escapeHtml(task.titulo) + '" placeholder="Ej: Llamar al proveedor" /></div>' +
+
+      '<div class="field"><label>Descripción</label><textarea id="f_desc">' + escapeHtml(task.descripcion) + '</textarea></div>' +
+
+      '<div class="field-row">' +
+        '<div class="field"><label>Categoría</label><select id="f_categoria">' + catOptions + '</select>' +
+          '<div class="new-cat-row" id="newCatRow" style="display:none;">' +
+            '<input type="text" id="f_newcat" placeholder="Nombre de la categoría" />' +
+            '<button class="tag-add-btn" id="btnConfirmNewCat">Crear</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="field"><label>Prioridad</label><select id="f_prioridad">' + prioOptions + '</select></div>' +
+      '</div>' +
+
+      '<div class="field"><label>Fecha límite</label><input type="date" id="f_fecha" value="' + (task.fecha_limite||'') + '" /></div>' +
+
+      (isNew ? '<div class="field"><label>Columna inicial</label><select id="f_estado">' +
+        COLUMNS.map(function(c){ return '<option value="'+c+'" ' + (task.estado===c?'selected':'') + '>' + COLUMN_LABELS[c] + '</option>'; }).join('') +
+        '</select></div>' : '') +
+
+      '<div class="field"><label>Etiquetas (opcional, libres)</label>' +
+        '<div class="tag-input-row"><input type="text" id="f_tagnew" placeholder="Cualquier otra etiqueta libre..." /><button class="tag-add-btn" id="btnAddTag">Añadir</button></div>' +
+        '<div class="tag-list" id="tagList">' + tagPills + '</div>' +
+      '</div>' +
+
+      '<div class="section-title">Adjuntos</div>' +
+      '<label class="file-btn">📎 Subir archivo<input type="file" id="f_file" style="display:none" /></label>' +
+      '<div class="warn-small">Los archivos se guardan como parte de la tarea; evita subir archivos grandes (&gt;2MB).</div>' +
+      '<div class="attach-list" id="attachList">' + attachHtml + '</div>' +
+
+      (isNew ? '' :
+        '<div class="section-title">Seguimiento</div>' +
+        '<div class="info-line" id="eventSummary">' + escapeHtml(eventSummary(task)) + '</div>' +
+        '<div id="eventsList" style="margin-top:6px;">' + eventsHtml + '</div>' +
+        '<div class="note-add-row">' +
+          '<input type="date" id="f_newevtdate" />' +
+          '<input type="text" id="f_newevtnota" placeholder="Nota (opcional)" />' +
+          '<button class="tag-add-btn" id="btnAddEvent">Añadir evento</button>' +
+        '</div>' +
+
+        '<div class="section-title">Notas</div>' +
+        '<div id="notesList">' + notesHtml + '</div>' +
+        '<div class="note-add-row"><textarea id="f_newnote" placeholder="Añadir un apunte..."></textarea><button class="tag-add-btn" id="btnAddNote">Añadir</button></div>' +
+
+        '<div class="section-title">Historial de movimientos</div>' +
+        '<div id="historyList">' + historyHtml + '</div>'
+      ) +
+
+      '<div class="modal-actions">' +
+        '<div>' + (isNew ? '' : '<button class="btn btn-delete" id="btnDelete">Eliminar</button> <button class="btn btn-archive" id="btnArchiveTask">Archivar</button>') + '</div>' +
+        '<div>' +
+          '<button class="btn btn-close" id="btnCancel">Cancelar</button> ' +
+          '<button class="btn btn-save" id="btnSave">Guardar</button>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('btnCancel').addEventListener('click', closeModal);
+    document.getElementById('btnSave').addEventListener('click', function(){ saveModal(isNew); });
+    if (!isNew) {
+      document.getElementById('btnDelete').addEventListener('click', function(){ deleteTask(); });
+      document.getElementById('btnArchiveTask').addEventListener('click', function(){ archiveTask(); });
+      document.getElementById('btnAddNote').addEventListener('click', function(){ addNote(task); });
+      document.getElementById('btnAddEvent').addEventListener('click', function(){ addEvent(task); });
+      modal.querySelectorAll('[data-doneevt]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var real = getTask(currentEditId);
+          var ev = (real.eventos||[]).find(function(e){ return e.id === b.dataset.doneevt; });
+          if (ev) { ev.hecho = true; ev.ts_hecho = nowIso(); save(); renderModal(real, false); }
+        });
+      });
+      modal.querySelectorAll('[data-rmevt]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var real = getTask(currentEditId);
+          real.eventos = (real.eventos||[]).filter(function(e){ return e.id !== b.dataset.rmevt; });
+          save(); renderModal(real, false);
+        });
+      });
+    }
+    document.getElementById('btnAddTag').addEventListener('click', addTagFromInput);
+    document.getElementById('f_tagnew').addEventListener('keydown', function(e){
+      if (e.key === 'Enter') { e.preventDefault(); addTagFromInput(); }
+    });
+
+    document.getElementById('f_categoria').addEventListener('change', function(e){
+      if (e.target.value === '__new__') {
+        document.getElementById('newCatRow').style.display = 'flex';
+      } else {
+        draftCategoria = e.target.value;
+        document.getElementById('newCatRow').style.display = 'none';
+      }
+    });
+    document.getElementById('btnConfirmNewCat').addEventListener('click', function(){ confirmNewCategory(task, isNew); });
+    document.getElementById('f_newcat').addEventListener('keydown', function(e){
+      if (e.key === 'Enter') { e.preventDefault(); confirmNewCategory(task, isNew); }
+    });
+    document.getElementById('f_prioridad').addEventListener('change', function(e){
+      draftPrioridad = e.target.value;
+    });
+
+    modal.querySelectorAll('[data-rmtag]').forEach(function(b){
+      b.addEventListener('click', function(){
+        draftTags.splice(parseInt(b.dataset.rmtag,10), 1);
+        renderModal(currentTaskDraft(task), isNew);
+      });
+    });
+    modal.querySelectorAll('[data-rmfile]').forEach(function(b){
+      b.addEventListener('click', function(){
+        draftAttachments.splice(parseInt(b.dataset.rmfile,10), 1);
+        renderModal(currentTaskDraft(task), isNew);
+      });
+    });
+    document.getElementById('f_file').addEventListener('change', function(e){
+      handleFile(e, task, isNew);
+    });
+  }
+
+  function confirmNewCategory(task, isNew){
+    var input = document.getElementById('f_newcat');
+    var name = input.value.trim();
+    if (!name) return;
+    var newCat = { id: slugify(name), name: name, hue: nextHue() };
+    state.categories.push(newCat);
+    save();
+    draftCategoria = newCat.id;
+    renderModal(currentTaskDraft(task), isNew);
+  }
+
+  function currentTaskDraft(task){
+    var t = Object.assign({}, task);
+    var titleEl = document.getElementById('f_titulo');
+    var descEl = document.getElementById('f_desc');
+    var fechaEl = document.getElementById('f_fecha');
+    if (titleEl) t.titulo = titleEl.value;
+    if (descEl) t.descripcion = descEl.value;
+    if (fechaEl) t.fecha_limite = fechaEl.value;
+    return t;
+  }
+
+  function addTagFromInput(){
+    var input = document.getElementById('f_tagnew');
+    var val = input.value.trim();
+    if (!val) return;
+    if (draftTags.indexOf(val) === -1) draftTags.push(val);
+    var base = currentEditId ? getTask(currentEditId) : { historial: [], notas: [], eventos: [], estado: 'todo' };
+    var task = currentTaskDraft(base);
+    renderModal(task, currentEditId === null);
+  }
+
+  function handleFile(e, task, isNew){
+    var file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('El archivo pesa más de 2MB. Elige uno más pequeño para evitar problemas de almacenamiento.');
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(){
+      draftAttachments.push({ name: file.name, dataUrl: reader.result });
+      renderModal(currentTaskDraft(task), isNew);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function getTask(id){
+    return state.tasks.find(function(t){ return t.id === id; });
+  }
+
+  function addNote(task){
+    var ta = document.getElementById('f_newnote');
+    var text = ta.value.trim();
+    if (!text) return;
+    var real = getTask(currentEditId);
+    real.notas = real.notas || [];
+    real.notas.push({ ts: nowIso(), texto: text });
+    save();
+    renderModal(real, false);
+  }
+
+  function addEvent(task){
+    var dateEl = document.getElementById('f_newevtdate');
+    var notaEl = document.getElementById('f_newevtnota');
+    var fecha = dateEl.value;
+    if (!fecha) { alert('Elige una fecha para el evento de seguimiento.'); return; }
+    var real = getTask(currentEditId);
+    real.eventos = real.eventos || [];
+    real.eventos.push({ id: uid(), fecha: fecha, nota: notaEl.value.trim(), hecho: false, ts_creado: nowIso() });
+    save();
+    renderModal(real, false);
+  }
+
+  function saveModal(isNew){
+    var titulo = document.getElementById('f_titulo').value.trim();
+    if (!titulo) { alert('Ponle un título a la tarea.'); return; }
+    var descripcion = document.getElementById('f_desc').value.trim();
+    var fecha = document.getElementById('f_fecha').value;
+    var categoria = draftCategoria || state.categories[0].id;
+    var prioridad = draftPrioridad || 'normal';
+
+    if (isNew) {
+      var estado = document.getElementById('f_estado').value;
+      var task = {
+        id: uid(),
+        titulo: titulo,
+        descripcion: descripcion,
+        fecha_limite: fecha,
+        fecha_creacion: nowIso(),
+        categoria: categoria,
+        prioridad: prioridad,
+        tags: draftTags.slice(),
+        estado: estado,
+        archivado: false,
+        historial: [{ ts: nowIso(), texto: 'Creada en ' + COLUMN_LABELS[estado] }],
+        notas: [],
+        eventos: [],
+        archivos: draftAttachments.slice()
+      };
+      state.tasks.push(task);
+    } else {
+      var t = getTask(currentEditId);
+      t.titulo = titulo;
+      t.descripcion = descripcion;
+      t.fecha_limite = fecha;
+      t.categoria = categoria;
+      t.prioridad = prioridad;
+      t.tags = draftTags.slice();
+      t.archivos = draftAttachments.slice();
+    }
+    save();
+    closeModal();
+    render();
+  }
+
+  function deleteTask(){
+    if (!confirm('¿Eliminar esta tarea? No se puede deshacer.')) return;
+    state.tasks = state.tasks.filter(function(t){ return t.id !== currentEditId; });
+    save();
+    closeModal();
+    render();
+  }
+
+  function archiveTask(){
+    var t = getTask(currentEditId);
+    if (!t) return;
+    t.archivado = true;
+    t.fecha_archivado = nowIso();
+    save();
+    closeModal();
+    render();
+  }
+
+  // ---- Archive panel ----
+  function openArchiveView(){
+    renderArchiveModal();
+    document.getElementById('overlay').classList.add('open');
+  }
+
+  function renderArchiveModal(){
+    var modal = document.getElementById('modal');
+    var archived = state.tasks.filter(function(t){ return t.archivado; });
+    var rows = archived.length ? archived.map(function(t){
+      var cat = getCategory(t.categoria);
+      return '<div class="archive-row">' +
+        '<div><strong>' + escapeHtml(t.titulo) + '</strong><br><span class="meta">' + escapeHtml(cat.name) + ' · ' + PRIORITY_LABELS[t.prioridad] + (t.fecha_archivado ? ' · archivada ' + fmtDateTime(t.fecha_archivado) : '') + '</span></div>' +
+        '<div style="display:flex;gap:6px;">' +
+          '<button class="tag-add-btn" data-restore="' + t.id + '">Restaurar</button>' +
+          '<button class="btn btn-delete" style="padding:5px 10px;font-size:11px;" data-purge="' + t.id + '">Eliminar</button>' +
+        '</div>' +
+      '</div>';
+    }).join('') : '<div class="empty-hint">No hay tareas archivadas todavía.</div>';
+
+    modal.innerHTML =
+      '<h2>Archivo</h2>' +
+      '<div class="info-line" style="margin-bottom:14px;">Tareas ocultas del tablero pero recuperables en cualquier momento.</div>' +
+      rows +
+      '<div class="modal-actions"><div></div><div><button class="btn btn-close" id="btnCloseArchive">Cerrar</button></div></div>';
+
+    document.getElementById('btnCloseArchive').addEventListener('click', closeModal);
+    modal.querySelectorAll('[data-restore]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var t = getTask(b.dataset.restore);
+        if (t) { t.archivado = false; save(); }
+        renderArchiveModal();
+        render();
+      });
+    });
+    modal.querySelectorAll('[data-purge]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if (!confirm('¿Eliminar definitivamente esta tarea archivada? No se puede deshacer.')) return;
+        state.tasks = state.tasks.filter(function(t){ return t.id !== b.dataset.purge; });
+        save();
+        renderArchiveModal();
+        render();
+      });
+    });
+  }
+
+  document.getElementById('btnNewTask').addEventListener('click', openNew);
+  document.getElementById('btnArchiveView').addEventListener('click', openArchiveView);
+  document.getElementById('btnRefresh').addEventListener('click', refreshFromRemote);
+  document.getElementById('overlay').addEventListener('click', function(e){
+    if (e.target.id === 'overlay') closeModal();
+  });
+
+  document.getElementById('searchInput').addEventListener('input', function(e){
+    filters.q = e.target.value;
+    render();
+  });
+  document.getElementById('filterCategoria').addEventListener('change', function(e){
+    filters.categoria = e.target.value;
+    render();
+  });
+  document.getElementById('filterPrioridad').addEventListener('change', function(e){
+    filters.prioridad = e.target.value;
+    render();
+  });
+  document.getElementById('filterFecha').addEventListener('change', function(e){
+    filters.fecha = e.target.value;
+    render();
+  });
+  document.getElementById('btnClearFilters').addEventListener('click', function(){
+    filters = { q: '', categoria: '', prioridad: '', fecha: '' };
+    document.getElementById('searchInput').value = '';
+    document.getElementById('filterCategoria').value = '';
+    document.getElementById('filterPrioridad').value = '';
+    document.getElementById('filterFecha').value = '';
+    render();
+  });
+
+  // refresh automatically when coming back to this tab/app (e.g. switching from phone to PC)
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) refreshFromRemote();
+  });
+  window.addEventListener('focus', function(){ refreshFromRemote(); });
+
+  // initial boot: load from Supabase (falls back to local cache if offline)
+  setStatus('loading');
+  loadRemote().then(function(s){
+    state = s;
+    render();
+  });
+})();
+</script>
+
+</body>
+</html>
