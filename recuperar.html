@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recuperar Mis Tareas</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#ddd0b8;color:#3b2f1e;margin:0;padding:16px;max-width:720px;margin:auto}
+h1{font-size:1.3rem} .box{background:#fff8;border-radius:10px;padding:12px;margin:12px 0}
+button{padding:10px 14px;margin:4px 4px 4px 0;border:0;border-radius:8px;background:#6e5638;color:#fff;font-size:1rem}
+button.sec{background:#b9a888;color:#3b2f1e} li{margin:3px 0} .warn{color:#a02020}
+</style></head><body>
+<h1>Recuperar tareas</h1>
+<p>Esta página solo LEE hasta que pulses el botón de restaurar. No modifica nada por sí sola.</p>
+<div class="box"><b>Copia local de este dispositivo</b> <span id="nl"></span><ul id="ll"></ul>
+<button id="dl" class="sec">Descargar copia (JSON)</button></div>
+<div class="box"><b>Nube (Supabase)</b> <span id="nr"></span><ul id="lr"></ul></div>
+<div class="box"><button id="rs">Restaurar copia local EN LA NUBE</button>
+<p class="warn">Reemplaza todo lo que hay ahora en la nube por la copia local. Descarga antes el JSON si dudas.</p></div>
+<script>
+var URL_='https://qgeljxgynifjnxrgsjxw.supabase.co/rest/v1/board', KEY='sb_publishable_GrerzZQtUHzVQuvaVAStdw_0ywYvyiQ';
+var H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function list(el,cnt,st){
+  var t=(st&&st.tasks)||[];
+  cnt.textContent='— '+t.length+' tarjetas';
+  el.innerHTML=t.map(function(x){return '<li>['+esc(x.estado)+'] '+esc(x.titulo)+(x.archivado?' (archivada)':'')+'</li>'}).join('');
+}
+var local=null;
+try{var raw=localStorage.getItem('rs_taskboard_cache_v1'); local=raw?JSON.parse(raw):null}catch(e){}
+if(local) list(document.getElementById('ll'),document.getElementById('nl'),local);
+else document.getElementById('nl').textContent='— no hay copia local en este navegador';
+fetch(URL_+'?select=data&id=eq.1',{headers:H}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+ .then(function(rows){list(document.getElementById('lr'),document.getElementById('nr'),rows[0]&&rows[0].data)})
+ .catch(function(e){document.getElementById('nr').textContent='— error: '+e.message});
+document.getElementById('dl').onclick=function(){
+  if(!local){alert('No hay copia local');return}
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(local,null,2)],{type:'application/json'}));
+  a.download='mis-tareas-copia.json';a.click();
+};
+document.getElementById('rs').onclick=function(){
+  if(!local||!local.tasks||!local.tasks.length){alert('La copia local está vacía; no se restaura nada.');return}
+  if(!confirm('Se reemplazarán los datos de la nube por '+local.tasks.length+' tarjetas locales. ¿Seguro?'))return;
+  fetch(URL_+'?id=eq.1',{method:'PATCH',headers:Object.assign({'Prefer':'return=representation'},H),body:JSON.stringify({data:local})})
+   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+   .then(function(rows){
+     if(rows.length){alert('Restaurado. Recarga la app de tareas.');location.reload();return}
+     return fetch(URL_,{method:'POST',headers:Object.assign({'Prefer':'return=minimal'},H),body:JSON.stringify({id:1,data:local})})
+       .then(function(r){if(!r.ok)throw new Error('INSERT HTTP '+r.status);alert('Creado y restaurado.');location.reload()});
+   }).catch(function(e){alert('Error: '+e.message)});
+};
+</script></body></html>
